@@ -25,23 +25,3 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run tests
         run: python3 -m pytest --log-cli-level=INFO
-
-  preview:
-    name: Deploy preview environment
-    needs: test
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Context
-        uses: okteto/context@latest
-        with:
-          url: ${{ secrets.OKTETO_CONTEXT }}
-          token: ${{ secrets.OKTETO_TOKEN }}
-
-      - name: Deploy preview environment
-        uses: okteto/deploy-preview@latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          name: pr-${{ github.event.number }}
-          timeout: 15m

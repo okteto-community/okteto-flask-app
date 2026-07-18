@@ -22,6 +22,8 @@ services:
     command: flask run
     ports:
       - '5050:5050'
+    volumes:
+      - .:/flask_app
 
 volumes:
   couchdb_data:
