@@ -1,38 +1,28 @@
-name: Okteto Flask REST API CI
-
+# file: .github/workflows/preview.yaml
 on:
-  push:
-    branches: [ master ]
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
+
+concurrency:
+  # more info here: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#concurrency
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build:
+  preview:
     runs-on: ubuntu-latest
     steps:
+      - name: Context
+        uses: okteto/context@latest
+        with:
+          url: ${{secrets.OKTETO_CONTEXT}}
+          token: ${{ secrets.OKTETO_TOKEN }}
 
-    - uses: actions/checkout@v2
-    - name: Install python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3
-
-    - name: Install python dependencies
-      run: pip install -r requirements.txt
-
-    - name: Login to Okteto Cloud
-      uses: okteto/login@master
-      with:
-        token: ${{ secrets.OKTETO_TOKEN }}
-
-    - name: Activate application namespace
-      uses: okteto/namespace@master
-      with:
-        namespace: vickywane
-
-    - name: Build and deploy application image to Production Okteto Namespace
-      if: ${{ github.event_name == 'push' }}
-      uses: okteto/deploy-stack@master
-      with:
-        name: okteto-flask-app
-        build: true
+      - name: Deploy preview environment
+        uses: okteto/deploy-preview@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: ofa-pr-${{ github.event.number }}
+          timeout: 15m
