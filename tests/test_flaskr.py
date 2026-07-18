@@ -3,13 +3,13 @@ import os
 from flask import Flask
 import pytest
 import logging
-import httpretty
-from ..routes.flaskr import create_app
+import responses
+from routes.flaskr import create_app
 
 log = logging.getLogger(__name__)
 
 app = Flask(__name__)
-client = create_app(app)
+create_app(app)
 
 
 @pytest.fixture
@@ -26,15 +26,26 @@ def test_handle_default_route(client):
     assert (data['status'] == "OK")
 
 
-@httpretty.activate(verbose=True, allow_net_connect=False)
+@responses.activate
 def test_handle_items_fetch(client):
-    mockResponse = '{"docs":[{"_id":"customer:123456789","_rev":"1-123456789","subscription":"PREMIUM",' \
-                   '"type":"paid_customer","name":"John Mike","occupation":"Software Eng"}],' \
-                   '"bookmark":"g1123123424211233221"} '
-    httpretty.register_uri(
-        httpretty.POST,
+    mock_response = {
+        "docs": [
+            {
+                "_id": "customer:123456789",
+                "_rev": "1-123456789",
+                "subscription": "PREMIUM",
+                "type": "paid_customer",
+                "name": "John Mike",
+                "occupation": "Software Eng",
+            }
+        ],
+        "bookmark": "g1123123424211233221",
+    }
+    responses.add(
+        responses.POST,
         '{}/customers/_find'.format(os.environ.get("COUCHDB_URL")),
-        body=mockResponse
+        json=mock_response,
+        status=200,
     )
 
     request = client.get('/api/customer')
@@ -44,12 +55,12 @@ def test_handle_items_fetch(client):
     assert '_id' in data['customers'][0]
 
 
-@httpretty.activate(verbose=True, allow_net_connect=False)
+@responses.activate
 def test_handle_items_post(client):
-    httpretty.register_uri(
-        httpretty.POST,
+    responses.add(
+        responses.POST,
         '{}/customers/_bulk_docs'.format(os.environ.get("COUCHDB_URL")),
-        status=201
+        status=201,
     )
 
     request = client.post('/api/customer', json={
@@ -57,23 +68,24 @@ def test_handle_items_post(client):
         'occupation': 'Software Eng'
     })
 
-    responseData = json.loads(request.data)
-    assert responseData['status'] == "USER CREATED"
+    response_data = json.loads(request.data)
+    assert response_data['status'] == "USER CREATED"
 
 
-@httpretty.activate(verbose=True, allow_net_connect=False)
+@responses.activate
 def test_handle_items_delete(client):
-    mockCustomerID = 'customer:123456789'
+    mock_customer_id = 'customer:123456789'
 
-    httpretty.register_uri(
-        httpretty.HEAD,
-        '{0}/customers/{1}'.format(os.environ.get("COUCHDB_URL"), mockCustomerID),
+    responses.add(
+        responses.HEAD,
+        '{0}/customers/{1}'.format(os.environ.get("COUCHDB_URL"), mock_customer_id),
+        status=200,
     )
 
     request = client.delete('/api/customer', json={
-        'id': mockCustomerID,
+        'id': mock_customer_id,
     })
 
-    responseData = json.loads(request.data)
+    response_data = json.loads(request.data)
     assert request.status_code == 200
-    assert responseData['status'] == "DOCUMENT DELETED"
+    assert response_data['status'] == "DOCUMENT DELETED"

@@ -2,19 +2,26 @@ name: Okteto Flask REST API CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  test_x86:
+  test:
+    name: Test (pytest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Install python
-        uses: actions/setup-python@v2
-        env:
-          COUCHDB_URL: http://couchdb-admin:couchdb-password@database:5984
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: 3
-          run: python3 -m pytest --log-cli-level=INFO
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tests
+        run: python3 -m pytest --log-cli-level=INFO

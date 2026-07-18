@@ -1,4 +1,3 @@
-version: '3'
 services:
   database:
     image: docker.io/bitnami/couchdb:3
@@ -23,6 +22,8 @@ services:
     command: flask run
     ports:
       - '5050:5050'
+    volumes:
+      - .:/flask_app
 
 volumes:
   couchdb_data:
