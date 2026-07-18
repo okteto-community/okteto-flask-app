@@ -1,28 +1,20 @@
-# file: .github/workflows/preview.yaml
-on:
-  pull_request:
-    branches:
-      - master
+name: Okteto Flask REST API CI
 
-concurrency:
-  # more info here: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#concurrency
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  preview:
+  test_x86:
     runs-on: ubuntu-latest
     steps:
-      - name: Context
-        uses: okteto/context@latest
-        with:
-          url: ${{secrets.OKTETO_CONTEXT}}
-          token: ${{ secrets.OKTETO_TOKEN }}
-
-      - name: Deploy preview environment
-        uses: okteto/deploy-preview@latest
+      - uses: actions/checkout@v2
+      - name: Install python
+        uses: actions/setup-python@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COUCHDB_URL: http://couchdb-admin:couchdb-password@database:5984
         with:
-          name: ofa-pr-${{ github.event.number }}
-          timeout: 15m
+          python-version: 3
+          run: python3 -m pytest --log-cli-level=INFO
